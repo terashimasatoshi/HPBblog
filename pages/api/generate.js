@@ -54,6 +54,7 @@ export default async function handler(req, res) {
     const youtubeKey = process.env.YOUTUBE_API_KEY;
 
     if (!geminiKey) {
+      console.error("Server Error: GEMINI_API_KEY is missing");
       throw new Error("サーバー設定エラー: GEMINI_API_KEY が設定されていません。Vercelの環境変数を確認してください。");
     }
 
@@ -82,6 +83,9 @@ export default async function handler(req, res) {
           contextBullets = items.map(item => {
              return `トレンド情報(YouTube): ${item.snippet.title} / ${item.snippet.description}`.substring(0, 100);
           });
+        } else {
+            console.warn("YouTube API Error:", ytRes.status, ytRes.statusText);
+            // キーが無効などの場合も続行
         }
       } catch (e) {
         console.error("YouTube Fetch Error:", e);
@@ -134,31 +138,27 @@ export default async function handler(req, res) {
       出力はブログの本文のみにしてください。タイトルは不要です。
     `;
 
-    const model = ai.getGenerativeModel({ 
+    // 新しいSDKの正しい呼び出し方
+    const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      generationConfig: {
+      contents: systemPrompt + "\n\n" + userPrompt,
+      config: {
         temperature: 0.8,
         topP: 0.95,
       }
     });
 
-    const result = await model.generateContent({
-      contents: [
-        { role: 'user', parts: [{ text: systemPrompt + "\n\n" + userPrompt }]}
-      ]
-    });
-    
-    const response = await result.response;
-    const rawContent = response.text();
+    // .text() ではなく .text プロパティを使用する
+    const rawContent = response.text || "";
     const sanitized = sanitizeForHPB(rawContent);
 
     res.status(200).json({ ok: true, body: sanitized });
 
   } catch (error) {
-    console.error("API Error:", error);
+    console.error("API Error Details:", error);
     res.status(500).json({ 
       ok: false, 
-      message: error.message || "生成中にサーバーエラーが発生しました。" 
+      message: `生成エラー: ${error.message || "サーバーエラーが発生しました"}` 
     });
   }
 }

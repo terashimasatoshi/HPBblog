@@ -167,8 +167,6 @@ function App() {
     setGeneratedText("");
 
     try {
-      // フロントエンドからは単純に API エンドポイントを叩くだけにします
-      // これにより API キーはサーバー側 (pages/api/generate.js) で隠蔽されます
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: {
@@ -183,7 +181,6 @@ function App() {
 
       const contentType = response.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
-         // HTMLが返ってきた場合（APIルートが見つからない場合など）
          throw new Error("API接続エラー: サーバーからの応答が正しくありません。\n(Vercelに 'pages/api/generate.js' が正しくデプロイされているか確認してください)");
       }
 
@@ -197,7 +194,7 @@ function App() {
 
     } catch (err) {
       console.error(err);
-      setError(`【生成エラー】\n${err.message}\n\n※このエラーが続く場合、Vercelの環境変数(GEMINI_API_KEY)の設定と、'pages/api/generate.js' ファイルが存在するか確認してください。`);
+      setError(`【生成エラー】\n${err.message}\n\n※このエラーが続く場合、Vercelの環境変数 GEMINI_API_KEY が正しく設定されているか確認してください。`);
     } finally {
       setLoading(false);
     }
